@@ -1,0 +1,212 @@
+{
+  "session_id": "diag_session_fallback",
+  "cloze_questions": [
+    {
+      "id": "cloze_01",
+      "cefr_level": "A1",
+      "category": "contrastive_syntax",
+      "sentence_with_blank": "_______ very important to analyze the inflation data every month.",
+      "options": ["Is", "It is", "Are", "Being"],
+      "correct_option": "It is",
+      "contrastive_tip_es": "En español el sujeto es tácito ('Es importante'), pero en inglés toda oración requiere un pronombre sujeto explícito ('It is important')."
+    },
+    {
+      "id": "cloze_02",
+      "cefr_level": "A2",
+      "category": "grammar_prepositions",
+      "sentence_with_blank": "The investment return depends _______ market volatility and consumer confidence.",
+      "options": ["of", "in", "on", "from"],
+      "correct_option": "on",
+      "contrastive_tip_es": "En español decimos 'depende de', pero en inglés el régimen verbal obligatorio es 'depend ON'."
+    },
+    {
+      "id": "cloze_03",
+      "cefr_level": "A2",
+      "category": "grammar_prepositions",
+      "sentence_with_blank": "Our quantitative research team is very interested _______ analyzing time-series datasets.",
+      "options": ["for", "in", "to", "about"],
+      "correct_option": "in",
+      "contrastive_tip_es": "El adjetivo 'interested' siempre rige la preposición 'IN' seguida de gerundio (interested in analyzing)."
+    },
+    {
+      "id": "cloze_04",
+      "cefr_level": "B1",
+      "category": "lexicon_false_friends",
+      "sentence_with_blank": "The government adopted a new fiscal _______ to curb the escalating debt deficit.",
+      "options": ["politics", "policy", "police", "politician"],
+      "correct_option": "policy",
+      "contrastive_tip_es": "Falso amigo crítico: 'Policy' es la política pública o plan de acción institucional; 'Politics' es la actividad política o partidista."
+    },
+    {
+      "id": "cloze_05",
+      "cefr_level": "B1",
+      "category": "grammar_tenses",
+      "sentence_with_blank": "By the time the central bank raised rates, prices _______ by more than 8%.",
+      "options": ["already surged", "had already surged", "have already surged", "will surge"],
+      "correct_option": "had already surged",
+      "contrastive_tip_es": "Uso del Past Perfect ('had surged') para indicar una acción anterior a otro evento en el pasado ('raised')."
+    },
+    {
+      "id": "cloze_06",
+      "cefr_level": "B2",
+      "category": "lexicon_false_friends",
+      "sentence_with_blank": "After months of negotiations, the two central banks _______ reached a currency swap agreement.",
+      "options": ["eventually", "actually", "currently", "at the present"],
+      "correct_option": "eventually",
+      "contrastive_tip_es": "Falso amigo: 'Eventually' significa 'finalmente' o 'a la larga'. 'Actually' significa 'en realidad/de hecho' (no actualmente)."
+    },
+    {
+      "id": "cloze_07",
+      "cefr_level": "B2",
+      "category": "contrastive_syntax",
+      "sentence_with_blank": "Under no circumstances _______ the central bank allow hyperinflation expectations to unanchor.",
+      "options": ["will", "the central bank will", "is going to", "would have"],
+      "correct_option": "will",
+      "contrastive_tip_es": "Inversión sintáctica negativa formal: tras 'Under no circumstances' se invierte el orden auxiliar + sujeto ('will the central bank allow')."
+    },
+    {
+      "id": "cloze_08",
+      "cefr_level": "C1",
+      "category": "econometrics_syntax",
+      "sentence_with_blank": "To account for unobserved time-invariant confounders, we estimate a model with two-way _______ effects.",
+      "options": ["fixed", "random", "mixed", "static"],
+      "correct_option": "fixed",
+      "contrastive_tip_es": "En econometría empírica, 'Two-way fixed effects' (TWFE) es el estándar canónico para controlar por heterogeneidad no observada de entidad y tiempo."
+    },
+    {
+      "id": "cloze_09",
+      "cefr_level": "C1",
+      "category": "econometrics_syntax",
+      "sentence_with_blank": "Given that the explanatory variable is endogenous, we exploit a rainfall shock as an _______ variable.",
+      "options": ["instrumental", "intermediary", "isolated", "intuitive"],
+      "correct_option": "instrumental",
+      "contrastive_tip_es": "'Instrumental Variables' (IV) es la terminología técnica para resolver problemas de endogeneidad y correlación con el término de error."
+    },
+    {
+      "id": "cloze_10",
+      "cefr_level": "C1",
+      "category": "academic_hedging",
+      "sentence_with_blank": "The empirical findings _______ that credit friction exacerbates macroeconomic downturns.",
+      "options": ["suggest", "demands", "proves definitively", "assures without doubt"],
+      "correct_option": "suggest",
+      "contrastive_tip_es": "En redacción académica internacional (Academic Hedging), se prefiere 'suggest / indicate' para matizar conclusiones empíricas en lugar de afirmaciones categóricas como 'proves definitively'."
+    }
+  ],
+  "listening_questions": [
+    {
+      "id": "listen_01",
+      "cefr_level": "A2",
+      "audio_text": "The Federal Reserve chairman announced that inflation dropped to 3 percent this quarter, easing concerns among private investors.",
+      "audio_speed": 0.9,
+      "question_text": "What was the main outcome announced regarding inflation?",
+      "options": [
+        "It dropped to 3%, decreasing investor concern",
+        "It surged above target, causing panic",
+        "It remained completely flat all year",
+        "It doubled due to higher gas prices"
+      ],
+      "correct_option": "It dropped to 3%, decreasing investor concern",
+      "inference_key": "Inflation deceleration"
+    },
+    {
+      "id": "listen_02",
+      "cefr_level": "B1",
+      "audio_text": "Although consumer expenditure rebounded slightly last month, business fixed investment plateaued due to elevated borrowing costs and geopolitical uncertainty.",
+      "audio_speed": 1.0,
+      "question_text": "Why did business fixed investment remain flat (plateaued)?",
+      "options": [
+        "High borrowing costs and geopolitical uncertainty",
+        "A sharp decline in consumer expenditure",
+        "A sudden cut in central bank interest rates",
+        "Labor shortages in manufacturing"
+      ],
+      "correct_option": "High borrowing costs and geopolitical uncertainty",
+      "inference_key": "Plateaued behavior rationale"
+    },
+    {
+      "id": "listen_03",
+      "cefr_level": "B2",
+      "audio_text": "In our baseline two-stage least squares specification, the first-stage F-statistic comfortably exceeds the standard Stock-Yogo threshold of ten, dispelling weak instrument apprehensions.",
+      "audio_speed": 1.1,
+      "question_text": "What does the first-stage F-statistic exceeding ten indicate?",
+      "options": [
+        "The instruments used are sufficiently strong",
+        "The econometric model suffers from severe multicollinearity",
+        "The sample size is too small for statistical power",
+        "The null hypothesis of zero effect was rejected"
+      ],
+      "correct_option": "The instruments used are sufficiently strong",
+      "inference_key": "Econometric instrument diagnostic"
+    }
+  ],
+  "economics_questions": [
+    {
+      "id": "econ_01",
+      "term": "Elasticity of Demand",
+      "part_of_speech": "noun phrase",
+      "definition_prompt": "Which concept measures the percentage change in quantity demanded in response to a percentage change in price?",
+      "options": [
+        "Price Elasticity of Demand",
+        "Marginal Rate of Technical Substitution",
+        "Gini Coefficient",
+        "Comparative Advantage"
+      ],
+      "correct_option": "Price Elasticity of Demand",
+      "subfield": "micro",
+      "example_usage": "When price elasticity is greater than one, demand is deemed elastic."
+    },
+    {
+      "id": "econ_02",
+      "term": "Yield Curve Inversion",
+      "part_of_speech": "noun phrase",
+      "definition_prompt": "What phenomenon occurs when short-term sovereign bond yields exceed long-term yields, traditionally signaling a recession?",
+      "options": [
+        "Yield Curve Inversion",
+        "Quantitative Easing Expansion",
+        "Liquidity Trap",
+        "Stagflation Spiral"
+      ],
+      "correct_option": "Yield Curve Inversion",
+      "subfield": "macro",
+      "example_usage": "An inverted yield curve has preceded nearly every major modern economic downturn."
+    },
+    {
+      "id": "econ_03",
+      "term": "Endogeneity",
+      "part_of_speech": "noun",
+      "definition_prompt": "What econometric issue arises when an explanatory variable is correlated with the error term?",
+      "options": [
+        "Endogeneity",
+        "Homoskedasticity",
+        "Stationarity",
+        "Serial Autocorrelation"
+      ],
+      "correct_option": "Endogeneity",
+      "subfield": "econometrics",
+      "example_usage": "Omitted variable bias and reverse causality are the leading causes of endogeneity."
+    },
+    {
+      "id": "econ_04",
+      "term": "Moral Hazard",
+      "part_of_speech": "noun phrase",
+      "definition_prompt": "What asymmetric information condition occurs when one party takes greater risks because another party bears the costs?",
+      "options": [
+        "Moral Hazard",
+        "Adverse Selection",
+        "Deadweight Loss",
+        "Pareto Optimality"
+      ],
+      "correct_option": "Moral Hazard",
+      "subfield": "micro",
+      "example_usage": "Government bailouts can induce moral hazard among large financial institutions."
+    }
+  ],
+  "spoken_prompt": {
+    "prompt_id": "spoken_diag_01",
+    "scenario_title": "Inflation & Central Bank Rate Decision",
+    "instructions_en": "You have 60 seconds. Describe how a central bank should respond when core inflation rises while GDP growth slows down. Use academic/economic vocabulary.",
+    "instructions_es": "Tienes 60 segundos. Explica en inglés cómo debe responder un banco central cuando la inflación subyacente aumenta pero el PIB se desacelera.",
+    "target_keywords": ["inflation", "interest rate", "monetary policy", "trade-off", "central bank", "growth"],
+    "expected_duration_seconds": 60
+  }
+}

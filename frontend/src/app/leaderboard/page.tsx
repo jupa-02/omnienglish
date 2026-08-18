@@ -23,7 +23,10 @@ export default function LeaderboardPage() {
   useEffect(() => {
     async function fetchLeaderboard() {
       try {
-        const res = await fetch('http://localhost:8000/api/v1/gamification/leaderboard');
+        const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+        const cleanUrl = rawUrl.replace(/\/+$/, '');
+        const API_BASE_URL = cleanUrl.endsWith('/api/v1') ? cleanUrl : `${cleanUrl}/api/v1`;
+        const res = await fetch(`${API_BASE_URL}/gamification/leaderboard`);
         if (res.ok) {
           const data = await res.json();
           const formatted = data.leaderboard.map((u: any) => ({

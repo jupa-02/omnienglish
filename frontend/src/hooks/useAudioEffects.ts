@@ -12,7 +12,9 @@ export function useAudioEffects() {
   const speakText = useCallback(async (text: string, rate: number = 0.9) => {
     // 1. Try high-quality human-like AI voice from backend
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+      const rawUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+      const cleanUrl = rawUrl.replace(/\/+$/, '');
+      const API_BASE_URL = cleanUrl.endsWith('/api/v1') ? cleanUrl : `${cleanUrl}/api/v1`;
       const response = await fetch(`${API_BASE_URL}/tts/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

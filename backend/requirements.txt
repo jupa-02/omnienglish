@@ -21,3 +21,4 @@ pytest==8.2.2
 pytest-asyncio==0.23.7
 google-genai==0.2.0
 edge-tts==7.2.8
+aiosqlite==0.20.0

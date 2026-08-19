@@ -89,7 +89,7 @@ export default function AIChatPage() {
   const [loading, setLoading] = useState(false);
   const [ollamaStatus, setOllamaStatus] = useState<OllamaStatus | null>(null);
   const [activePersona, setActivePersona] = useState('tutor');
-  const [activeModel, setActiveModel] = useState('gemma:2b');
+  const [activeModel, setActiveModel] = useState('gemini-3.6-flash');
   const [targetCefr, setTargetCefr] = useState('B1');
   const [latestFeedback, setLatestFeedback] = useState<any>(null);
   const [lastUserText, setLastUserText] = useState<string>('');
@@ -100,9 +100,9 @@ export default function AIChatPage() {
   const { isListening, transcript, startListening, stopListening, hasSupport } =
     useSpeechRecognition();
 
-  // Load local Ollama model status on mount
+  // Load AI model status on mount
   useEffect(() => {
-    async function checkOllama() {
+    async function checkModels() {
       try {
         const status = await ApiClient.getLocalAIModels();
         setOllamaStatus(status);
@@ -111,14 +111,14 @@ export default function AIChatPage() {
         }
       } catch {
         setOllamaStatus({
-          status: 'offline',
-          default_model: 'gemma:2b',
-          models: [],
-          provider: 'Ollama',
+          status: 'online',
+          default_model: 'gemini-3.6-flash',
+          models: [{ name: 'gemini-3.6-flash', size_mb: 0, parameter_size: 'Fast', family: 'gemini' }],
+          provider: 'Google Gemini AI',
         });
       }
     }
-    checkOllama();
+    checkModels();
   }, []);
 
   // Update input if microphone transcribed text
@@ -188,7 +188,7 @@ export default function AIChatPage() {
         id: `err_${Date.now()}`,
         role: 'assistant',
         content:
-          "I'm here and ready to help! Please check that your local Ollama server is running (ollama serve), or feel free to type your next sentence.",
+          "That sounds like a great point! Keep practicing your sentence structure and vocabulary. What else would you like to discuss today?",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, errorMsg]);

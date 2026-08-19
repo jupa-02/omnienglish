@@ -27,10 +27,12 @@ import { ProgressBar } from '@/components/map/ProgressBar';
 import { useAudioEffects } from '@/hooks/useAudioEffects';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 
+import fallbackDiagnosticData from '@/lib/fallbackDiagnostic.json';
+
 function PlacementTestContent() {
   const { playSuccess, playError, playLevelUp, playClick, speakText } = useAudioEffects();
 
-  const [examData, setExamData] = useState<DiagnosticExamStart | null>(null);
+  const [examData, setExamData] = useState<DiagnosticExamStart | null>(fallbackDiagnosticData as unknown as DiagnosticExamStart);
   const [stage, setStage] = useState<'intro' | 'cloze' | 'listening' | 'economics' | 'speaking' | 'result'>('intro');
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -50,13 +52,11 @@ function PlacementTestContent() {
     async function loadTest() {
       try {
         const data = await ApiClient.startPlacement();
-        setExamData(data);
-      } catch {
-        // Fallback default exam
-        const fallback = await import('@/lib/fallbackDiagnostic.json').catch(() => null);
-        if (fallback) {
-          setExamData((fallback.default || fallback) as unknown as DiagnosticExamStart);
+        if (data && data.cloze_questions?.length > 0) {
+          setExamData(data);
         }
+      } catch {
+        // Already initialized with complete fallback data
       }
     }
     loadTest();

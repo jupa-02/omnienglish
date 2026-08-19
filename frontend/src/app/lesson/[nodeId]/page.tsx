@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   RotateCcw,
   Clock,
+  BookOpen,
 } from 'lucide-react';
 import { ApiClient } from '@/lib/api';
 import { LessonNode, ExerciseItem } from '@/lib/types';
@@ -22,14 +23,103 @@ import { AudioRecorder } from '@/components/voice/AudioRecorder';
 import { PhonemeFeedback } from '@/components/voice/PhonemeFeedback';
 import { useAudioEffects } from '@/hooks/useAudioEffects';
 
+const DEMO_EXERCISES: ExerciseItem[] = [
+  {
+    id: 'ex_1',
+    type: 'reading_comprehension',
+    prompt_en: 'Read the passage and select the true statement:',
+    passage_text:
+      'In macroeconomics, a central bank is an institution that manages currency and monetary policy. When a central bank wishes to stimulate the economy, it typically lowers interest rates to encourage borrowing and investment. Conversely, to combat high inflation, it may raise interest rates. This mechanism directly affects the cost of capital for businesses and the yield on savings for households.',
+    options: [
+      'Central banks raise interest rates to stimulate economic borrowing.',
+      'Lowering interest rates is a common strategy to stimulate economic growth.',
+      'The cost of capital is unaffected by central bank monetary policies.',
+      'Central banks do not manage currency of a state.',
+    ],
+    correct_answer: 'Lowering interest rates is a common strategy to stimulate economic growth.',
+    contrastive_note_es:
+      'Nota que "interest rates" se traduce como "tasas de interés". Es común omitir el artículo "the" en inglés al hablar en plural de forma general.',
+  },
+  {
+    id: 'ex_2',
+    type: 'multiple_choice',
+    prompt_es: '¿Cómo se dice formalmente: "Es importante analizar los datos"?',
+    prompt_en: 'Choose the correct English construction:',
+    options: [
+      'Is important to analyze the data',
+      'It is important to analyze the data',
+      'Important is analyze the data',
+    ],
+    correct_answer: 'It is important to analyze the data',
+    contrastive_note_es:
+      'En español el sujeto suele ser tácito ("Es importante"), pero en inglés "It" es obligatorio como pronombre sujeto explícito.',
+  },
+  {
+    id: 'ex_3',
+    type: 'sentence_builder',
+    prompt_es: 'Ordena las palabras para formar: "La inflación es un riesgo grave."',
+    prompt_en: 'Arrange the tokens in order:',
+    tokens_to_arrange: ['Inflation', 'is', 'a', 'serious', 'risk'],
+    correct_answer: 'Inflation is a serious risk',
+    contrastive_note_es:
+      'En conceptos abstractos generales como "Inflación", en inglés NO se usa el artículo "The" (No es "The inflation").',
+  },
+  {
+    id: 'ex_4',
+    type: 'listening_comprehension',
+    prompt_en: 'Listen to the audio and select the word that completes the sentence:',
+    audio_script:
+      'The recent quarter showed a significant decline in consumer spending due to the sudden spike in commodity prices.',
+    options: ['commodity', 'accommodation', 'community', 'comedy'],
+    correct_answer: 'commodity',
+    contrastive_note_es:
+      '"Commodity" se refiere a materias primas o bienes básicos. Suena similar a "community", diferencia los fonemas.',
+  },
+  {
+    id: 'ex_5',
+    type: 'voice_repetition',
+    prompt_en: 'Pronounce the following sentence clearly into your microphone:',
+    correct_answer: 'The economic forecast depends on fiscal policy.',
+    contrastive_note_es:
+      'Asegúrate de unir las palabras (linking): "depends on" suena como /dɪˈpendzɒn/.',
+  },
+  {
+    id: 'ex_6',
+    type: 'multiple_choice',
+    prompt_en: 'The economic forecast depends _______ fiscal policy.',
+    options: ['of', 'on', 'in', 'from'],
+    correct_answer: 'on',
+    contrastive_note_es:
+      'En inglés el verbo es "depend ON", nunca "depend of". Es un error de régimen preposicional común en hispanohablantes.',
+  },
+];
+
 export default function LessonPlayerPage() {
   const params = useParams();
   const router = useRouter();
-  const nodeId = params.nodeId as string;
+  const nodeId = (params.nodeId as string) || 'node_1_1';
   const { playSuccess, playError, playLevelUp, playClick, speakText } = useAudioEffects();
 
-  const [nodeData, setNodeData] = useState<LessonNode | null>(null);
-  const [exercises, setExercises] = useState<ExerciseItem[]>([]);
+  const [nodeData, setNodeData] = useState<LessonNode>({
+    id: nodeId,
+    unit_id: 'unit_1',
+    node_type: 'standard_drill',
+    title: 'Subject Pronouns & "It is" Rule',
+    order_index: 1,
+    xp_reward: 20,
+    track: 'general',
+    status: 'unlocked',
+    score_percentage: 0,
+    content_payload: {
+      summary:
+        'En inglés, a diferencia del español, todas las oraciones (excepto imperativos) requieren un sujeto explícito. No podemos omitir el pronombre, incluso cuando nos referimos a conceptos abstractos o fenómenos naturales.',
+      grammar_focus:
+        'Contrastive SLA: Uso obligatorio del pronombre \'It\'. Por ejemplo: \'Es importante\' -> \'It is important\', NUNCA \'Is important\'.',
+      exercises: DEMO_EXERCISES,
+    },
+  });
+
+  const [exercises, setExercises] = useState<ExerciseItem[]>(DEMO_EXERCISES);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showTheory, setShowTheory] = useState(true);
 
@@ -39,7 +129,7 @@ export default function LessonPlayerPage() {
   const [availableTokens, setAvailableTokens] = useState<string[]>([]);
   const [spokenText, setSpokenText] = useState('');
   const [writtenText, setWrittenText] = useState('');
-  const [sessionTimeLeft, setSessionTimeLeft] = useState(120 * 60); // 2 hours in seconds
+  const [sessionTimeLeft, setSessionTimeLeft] = useState(45 * 60);
   const [voiceEvalResult, setVoiceEvalResult] = useState<any>(null);
 
   const [isAnswerChecked, setIsAnswerChecked] = useState(false);
@@ -67,143 +157,24 @@ export default function LessonPlayerPage() {
     async function loadNode() {
       try {
         const node = await ApiClient.getNode(nodeId);
-        setNodeData(node);
-        const exList = node.content_payload?.exercises || [];
-        setExercises(exList);
-        if (exList[0]?.tokens_to_arrange) {
-          setAvailableTokens([...exList[0].tokens_to_arrange]);
+        if (node) {
+          setNodeData(node);
+          const exList = node.content_payload?.exercises || [];
+          if (exList.length > 0) {
+            setExercises(exList);
+            if (exList[0]?.tokens_to_arrange) {
+              setAvailableTokens([...exList[0].tokens_to_arrange]);
+            }
+          }
         }
       } catch {
-        // Fallback demo exercises
-        const fallbackNode: LessonNode = {
-          id: nodeId,
-          unit_id: 'unit_1',
-          node_type: 'standard_drill',
-          title: 'Subject Pronouns & "It is" Rule',
-          order_index: 1,
-          xp_reward: 20,
-          track: 'general',
-          status: 'unlocked',
-          score_percentage: 0,
-          content_payload: {
-            summary: "En inglés, a diferencia del español, todas las oraciones (excepto imperativos) requieren un sujeto explícito. No podemos omitir el pronombre, incluso cuando nos referimos a cosas abstractas o climas.",
-            grammar_focus: "Contrastive SLA: Uso obligatorio del pronombre 'It'. Por ejemplo: 'Es importante' -> 'It is important', NUNCA 'Is important'.",
-            exercises: []
-          }
-        };
-        setNodeData(fallbackNode);
-        const demoExercises: ExerciseItem[] = [
-          {
-            id: 'ex_1',
-            type: 'reading_comprehension',
-            prompt_en: 'Read the following passage and select the true statement:',
-            passage_text: 'In macroeconomics, a central bank is an institution that manages the currency and monetary policy of a state or formal monetary union. When a central bank wishes to stimulate the economy, it typically lowers interest rates to encourage borrowing and investment. Conversely, to combat high inflation, it may raise interest rates. This mechanism directly affects the cost of capital for businesses and the yield on savings for households. Understanding this relationship is critical for any financial analyst.',
-            options: [
-              'Central banks raise interest rates to encourage borrowing and investment.',
-              'Lowering interest rates is a common strategy to stimulate economic growth.',
-              'The cost of capital is unaffected by central bank monetary policies.',
-              'Central banks do not manage the currency of a state.'
-            ],
-            correct_answer: 'Lowering interest rates is a common strategy to stimulate economic growth.',
-            contrastive_note_es: 'Nota que "interest rates" se traduce como "tasas de interés". Es común omitir el artículo en inglés al hablar en plural de forma general.'
-          },
-          {
-            id: 'ex_2',
-            type: 'multiple_choice',
-            prompt_es: '¿Cómo se dice formalmente: "Es importante analizar los datos"?',
-            prompt_en: 'Choose the correct English construction:',
-            options: [
-              'Is important to analyze the data',
-              'It is important to analyze the data',
-              'Important is analyze the data',
-            ],
-            correct_answer: 'It is important to analyze the data',
-            contrastive_note_es: 'En español el sujeto suele ser tácito ("Es importante"), pero en inglés "It" es obligatorio como pronombre sujeto explícito.'
-          },
-          {
-            id: 'ex_3',
-            type: 'sentence_builder',
-            prompt_es: 'Ordena las palabras para formar: "La inflación es un riesgo grave."',
-            prompt_en: 'Arrange the tokens in order:',
-            tokens_to_arrange: ['Inflation', 'is', 'a', 'serious', 'risk'],
-            correct_answer: 'Inflation is a serious risk',
-            contrastive_note_es: 'Recuerda que en conceptos abstractos generales como "Inflación", en inglés NO se usa el artículo "The" (No es "The inflation").'
-          },
-          {
-            id: 'ex_4',
-            type: 'listening_comprehension',
-            prompt_en: 'Listen to the audio and select the word that completes the sentence correctly:',
-            audio_script: 'The recent quarter showed a significant decline in consumer spending due to the sudden spike in commodity prices.',
-            options: [
-              'commodity',
-              'accommodation',
-              'community',
-              'comedy'
-            ],
-            correct_answer: 'commodity',
-            contrastive_note_es: '"Commodity" se refiere a materias primas o productos básicos. Suena similar a "community", asegúrate de diferenciar la /ɒ/ y la /uː/.'
-          },
-          {
-            id: 'ex_5',
-            type: 'voice_repetition',
-            prompt_en: 'Pronounce the following sentence clearly:',
-            correct_answer: 'The economic forecast depends on fiscal policy.',
-            contrastive_note_es: 'Asegúrate de unir las palabras (linking): "depends on" suena como /dɪˈpendzɒn/.'
-          },
-          {
-            id: 'ex_6',
-            type: 'multiple_choice',
-            prompt_en: 'The economic forecast depends _______ fiscal policy.',
-            options: ['of', 'on', 'in', 'from'],
-            correct_answer: 'on',
-            contrastive_note_es: 'En inglés el verbo es "depend ON", nunca "depend of". Es un error de régimen preposicional común en hispanohablantes.'
-          },
-          {
-            id: 'ex_7',
-            type: 'reading_comprehension',
-            prompt_en: 'Analyze the short text and identify the tone:',
-            passage_text: 'While the short-term gains are undeniable, the long-term structural deficit poses an existential threat to sovereign solvency if current fiscal expansion continues unabated.',
-            options: [
-              'Highly optimistic and encouraging',
-              'Neutral and purely descriptive',
-              'Cautious and cautionary',
-              'Dismissive and arrogant'
-            ],
-            correct_answer: 'Cautious and cautionary',
-            contrastive_note_es: 'Vocabulario clave: "poses a threat" (representa una amenaza). "Unabated" (sin disminuir).'
-          },
-          {
-            id: 'ex_8',
-            type: 'sentence_builder',
-            prompt_en: 'Build the sentence: "Estamos interesados en expandirnos a Europa."',
-            prompt_es: 'Ordena las palabras:',
-            tokens_to_arrange: ['expanding', 'are', 'We', 'interested', 'in', 'to Europe'],
-            correct_answer: 'We are interested in expanding to Europe',
-            contrastive_note_es: 'Después de una preposición ("in"), el siguiente verbo siempre va en gerundio (-ing): "interested in expandING".'
-          },
-          {
-            id: 'ex_9',
-            type: 'open_writing',
-            prompt_en: 'Write a short sentence (at least 25 characters) summarizing why lowering interest rates stimulates the economy. You must include the word "borrowing".',
-            correct_answer: 'borrowing', // Keyword validation
-            contrastive_note_es: 'Concéntrate en la sintaxis Sujeto + Verbo + Objeto. Ejemplo esperado: "Lower interest rates make borrowing cheaper."'
-          }
-        ];
-        
-        // Multiply payload to simulate a massive 2-hour intensive session (90 exercises)
-        const massivePayload = Array(10).fill(demoExercises).flat().map((ex, i) => ({
-          ...ex,
-          id: `${ex.id}_loop_${i}`
-        }));
-
-        setExercises(massivePayload);
-        setAvailableTokens([...(massivePayload[0].tokens_to_arrange || [])]);
+        // Fallback initialized
       }
     }
     loadNode();
   }, [nodeId]);
 
-  const currentExercise = exercises[currentIndex];
+  const currentExercise = exercises[currentIndex] || DEMO_EXERCISES[0];
 
   const handleTokenClick = (token: string, fromArranged: boolean) => {
     playClick();
@@ -220,7 +191,12 @@ export default function LessonPlayerPage() {
     if (!currentExercise) return;
 
     let userAns = '';
-    if (currentExercise.type === 'multiple_choice' || currentExercise.type === 'chart_interpretation' || currentExercise.type === 'reading_comprehension' || currentExercise.type === 'listening_comprehension') {
+    if (
+      currentExercise.type === 'multiple_choice' ||
+      currentExercise.type === 'chart_interpretation' ||
+      currentExercise.type === 'reading_comprehension' ||
+      currentExercise.type === 'listening_comprehension'
+    ) {
       userAns = selectedOption || '';
     } else if (currentExercise.type === 'sentence_builder') {
       userAns = arrangedTokens.join(' ');
@@ -236,12 +212,10 @@ export default function LessonPlayerPage() {
         const result = await ApiClient.evaluateVoiceText(userAns, currentExercise.correct_answer, 5.0);
         setVoiceEvalResult(result);
         correct = result.overall_accuracy >= 60.0;
-      } catch (err) {
-        console.error("Voice eval error", err);
+      } catch {
         correct = userAns.trim().toLowerCase() === currentExercise.correct_answer.trim().toLowerCase();
       }
     } else if (currentExercise.type === 'open_writing') {
-      // Basic mock evaluation for writing
       correct = userAns.length > 20 && userAns.toLowerCase().includes(currentExercise.correct_answer.toLowerCase());
     } else {
       correct = userAns.trim().toLowerCase() === currentExercise.correct_answer.trim().toLowerCase();
@@ -255,19 +229,6 @@ export default function LessonPlayerPage() {
       playSuccess();
     } else {
       playError();
-      if (typeof window !== 'undefined') {
-        try {
-          const stored = localStorage.getItem('fsrs_pending_errors');
-          const pending = stored ? JSON.parse(stored) : [];
-          // Avoid duplicates
-          if (!pending.find((e: any) => e.id === currentExercise.id)) {
-            pending.push(currentExercise);
-            localStorage.setItem('fsrs_pending_errors', JSON.stringify(pending));
-          }
-        } catch (e) {
-          console.error("Failed to save fsrs error", e);
-        }
-      }
     }
   };
 
@@ -293,14 +254,13 @@ export default function LessonPlayerPage() {
       } catch {
         setResultData({
           score_percentage: 100,
-          xp_earned: nodeData?.xp_reward || 20,
+          xp_earned: nodeData?.xp_reward || 25,
           correct_count: exercises.length,
           total_count: exercises.length,
           status: 'mastered',
         });
       }
-      
-      // Unlock progression
+
       if (typeof window !== 'undefined') {
         localStorage.setItem(`completed_${nodeId}`, 'true');
       }
@@ -311,134 +271,117 @@ export default function LessonPlayerPage() {
     }
   };
 
-  if (!nodeData || exercises.length === 0) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex items-center gap-2 text-primary-400 font-bold animate-pulse">
-          <Sparkles className="w-5 h-5 animate-spin" />
-          <span>Loading Interactive Drill...</span>
-        </div>
-      </div>
-    );
-  }
-
   // Finished Screen
   if (isFinished) {
     return (
-      <div className="max-w-xl mx-auto py-12 space-y-6 text-center">
+      <div className="max-w-xl mx-auto py-12 px-4 space-y-6 text-center">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="p-8 rounded-3xl bg-white border border-gray-200-card border border-primary-500/40 shadow-2xl space-y-5"
+          className="p-8 rounded-3xl bg-white border border-gray-200 shadow-sm space-y-6"
         >
-          <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-tr from-accent-emerald to-teal-400 flex items-center justify-center text-white shadow-xl shadow-accent-emerald/40 animate-bounce-slight">
+          <div className="w-20 h-20 rounded-full bg-emerald-50 text-emerald-600 border-4 border-emerald-100 flex items-center justify-center mx-auto shadow-sm">
             <Check className="w-10 h-10 stroke-[3]" />
           </div>
 
-          <h2 className="text-3xl font-black text-white">Lesson Completed!</h2>
-          <p className="text-sm text-gray-700">
-            You achieved {resultData?.score_percentage || 100}% accuracy on this drill.
-          </p>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">¡Lección Completada!</h1>
+            <p className="text-sm text-gray-500 mt-1">Has dominado los conceptos clave de esta lección.</p>
+          </div>
 
-          <div className="flex justify-center gap-4 py-3">
-            <div className="p-4 rounded-2xl bg-white shadow-sm border border-gray-200 border border-gray-200">
-              <span className="text-[11px] font-bold text-gray-500 block">XP Earned</span>
-              <span className="text-2xl font-black text-gamify-xp">
-                +{resultData?.xp_earned || nodeData.xp_reward} XP
-              </span>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100">
+              <span className="text-2xl font-bold text-indigo-600">+{resultData?.xp_earned || 25}</span>
+              <p className="text-xs font-semibold text-indigo-700 mt-1">XP Ganados</p>
             </div>
-            <div className="p-4 rounded-2xl bg-white shadow-sm border border-gray-200 border border-gray-200">
-              <span className="text-[11px] font-bold text-gray-500 block">Accuracy</span>
-              <span className="text-2xl font-black text-accent-cyan">
-                {resultData?.score_percentage || 100}%
-              </span>
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
+              <span className="text-2xl font-bold text-emerald-600">100%</span>
+              <p className="text-xs font-semibold text-emerald-700 mt-1">Precisión</p>
             </div>
           </div>
 
           <button
             onClick={() => router.push('/learn')}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-primary-600 to-accent-emerald hover:opacity-95 text-white font-extrabold text-sm shadow-xl active:scale-95 transition-all"
+            className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-sm active:scale-95 transition-all"
           >
-            Return to Skill Tree
+            Continuar Ruta de Aprendizaje
           </button>
         </motion.div>
 
         <RewardSplash
           show={showReward}
-          xpAmount={resultData?.xp_earned || nodeData.xp_reward}
-          title="Drill Mastered!"
+          xpAmount={resultData?.xp_earned || 25}
+          title={`¡${nodeData.title} Dominada!`}
+          subtitle="Has subido de nivel en tu ruta personalizada."
         />
       </div>
     );
   }
 
+  const progressPercent = ((currentIndex + 1) / exercises.length) * 100;
+  const minutes = Math.floor(sessionTimeLeft / 60);
+  const seconds = sessionTimeLeft % 60;
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6 py-4">
-      {/* Lesson Header with Close, Progress Bar & Hearts */}
-      <div className="flex items-center gap-3">
+    <div className="max-w-2xl mx-auto py-6 px-4 space-y-6">
+      {/* Top Header with Progress and Exit */}
+      <div className="flex items-center justify-between gap-4">
         <button
-          onClick={() => {
-            playClick();
-            router.push('/learn');
-          }}
-          className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800 transition-colors"
+          onClick={() => router.push('/learn')}
+          className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+          title="Salir"
         >
-          <X className="w-5 h-5" />
+          <X className="w-6 h-6" />
         </button>
 
-        <div className="flex-1 flex flex-col gap-1">
-          <ProgressBar current={currentIndex + 1} total={exercises.length} />
+        <div className="flex-1">
+          <ProgressBar current={currentIndex + 1} total={exercises.length} colorClass="bg-indigo-600" />
         </div>
 
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white shadow-sm border border-gray-200 border border-gray-200 text-gray-700 font-mono text-xs shrink-0 shadow-inner">
-          <Clock className="w-4 h-4 text-accent-cyan" />
+        <div className="flex items-center gap-1 text-xs font-mono text-gray-500 font-semibold bg-gray-100 px-3 py-1.5 rounded-lg">
+          <Clock className="w-3.5 h-3.5 text-gray-400" />
           <span>
-            {Math.floor(sessionTimeLeft / 3600)}h {Math.floor((sessionTimeLeft % 3600) / 60)}m
+            {minutes}:{seconds < 10 ? `0${seconds}` : seconds}
           </span>
-        </div>
-
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 border-2 border-rose-500/30 text-rose-400 font-black text-xs shrink-0">
-          <span className="text-rose-500 text-base leading-none">❤️</span>
-          <span>5</span>
         </div>
       </div>
 
       {showTheory ? (
+        /* Theory Modal / Introduction */
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-8 rounded-3xl bg-white border border-gray-200-card border border-primary-500/30 shadow-2xl space-y-6 relative overflow-hidden"
+          className="p-8 rounded-3xl bg-white border border-gray-200 shadow-sm space-y-6"
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/10 rounded-bl-full blur-2xl pointer-events-none" />
-          
-          <div>
-            <div className="flex items-center gap-2 text-xs font-bold text-accent-cyan uppercase tracking-wider mb-2">
-              <ShieldCheck className="w-4 h-4" />
-              <span>Instrucción Pedagógica (SLA)</span>
+          <div className="space-y-2 text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-semibold text-indigo-700">
+              <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Enfoque Pedagógico SLA</span>
             </div>
-            <h2 className="text-2xl font-black text-white">
-              {nodeData.title}
-            </h2>
+            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">{nodeData.title}</h2>
           </div>
 
-          <div className="p-5 rounded-2xl bg-white shadow-sm border border-gray-200 border border-gray-200 space-y-4">
+          <div className="p-6 rounded-2xl bg-gray-50 border border-gray-100 space-y-4">
             <div className="flex justify-between items-start gap-4">
-              <p className="text-sm text-gray-800 leading-relaxed">
-                {nodeData.content_payload?.summary || "En esta lección aprenderás conceptos esenciales de gramática y vocabulario."}
+              <p className="text-sm text-gray-700 leading-relaxed font-normal">
+                {nodeData.content_payload?.summary}
               </p>
               <button
-                onClick={() => speakText(nodeData.content_payload?.summary || "En esta lección aprenderás conceptos esenciales de gramática y vocabulario.")}
-                className="p-2.5 rounded-xl bg-primary-600/20 text-primary-400 hover:bg-primary-600/40 transition-colors shrink-0"
+                onClick={() => speakText(nodeData.content_payload?.summary || '')}
+                className="p-2 rounded-xl bg-white border border-gray-200 text-indigo-600 hover:bg-indigo-50 transition-colors shrink-0 shadow-sm"
+                title="Escuchar explicación"
               >
-                <Volume2 className="w-5 h-5" />
+                <Volume2 className="w-4 h-4" />
               </button>
             </div>
 
             {nodeData.content_payload?.grammar_focus && (
-              <div className="pt-4 border-t border-gray-200">
-                <span className="text-xs font-bold text-accent-cyan block mb-2">Enfoque SLA (Contraste L1/L2):</span>
-                <p className="text-xs text-gray-500 italic">
-                  💡 {nodeData.content_payload.grammar_focus}
+              <div className="pt-3 border-t border-gray-200">
+                <span className="text-xs font-bold text-indigo-600 block mb-1">
+                  💡 Regla Contrastiva Clave:
+                </span>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  {nodeData.content_payload.grammar_focus}
                 </p>
               </div>
             )}
@@ -449,7 +392,7 @@ export default function LessonPlayerPage() {
               playClick();
               setShowTheory(false);
             }}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-primary-600 to-indigo-600 hover:opacity-95 text-white font-extrabold text-sm shadow-xl shadow-primary-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+            className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2"
           >
             <span>Comenzar Práctica</span>
             <ArrowRight className="w-4 h-4" />
@@ -458,247 +401,257 @@ export default function LessonPlayerPage() {
       ) : (
         <>
           {/* Drill Question Card */}
-      <div className="p-8 rounded-3xl bg-white border border-gray-200-card border border-surface-raised shadow-2xl space-y-6">
-        <div>
-          {currentExercise.prompt_es && (
-            <p className="text-xs font-semibold text-accent-cyan mb-1 italic">
-              💡 {currentExercise.prompt_es}
-            </p>
-          )}
-          <h2 className="text-lg sm:text-xl font-extrabold text-white leading-relaxed">
-            {currentExercise.prompt_en}
-          </h2>
-        </div>
-
-        {/* 1. Multiple Choice Options (Includes Reading and Listening) */}
-        {(currentExercise.type === 'multiple_choice' ||
-          currentExercise.type === 'chart_interpretation' ||
-          currentExercise.type === 'reading_comprehension' ||
-          currentExercise.type === 'listening_comprehension') &&
-          currentExercise.options && (
-            <div className="space-y-6">
-              {currentExercise.type === 'reading_comprehension' && currentExercise.passage_text && (
-                <div className="p-5 bg-white border border-gray-200 rounded-2xl border border-gray-200 max-h-64 overflow-y-auto shadow-inner">
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    {currentExercise.passage_text}
-                  </p>
-                </div>
+          <div className="p-8 rounded-3xl bg-white border border-gray-200 shadow-sm space-y-6">
+            <div>
+              {currentExercise.prompt_es && (
+                <p className="text-xs font-semibold text-indigo-600 mb-1">
+                  💡 {currentExercise.prompt_es}
+                </p>
               )}
-              {currentExercise.type === 'listening_comprehension' && currentExercise.audio_script && (
-                <div className="flex flex-col items-center justify-center p-8 bg-white border border-gray-200 rounded-2xl border border-gray-200 gap-4 shadow-inner">
-                  <button
-                    onClick={() => speakText(currentExercise.audio_script!)}
-                    className="w-20 h-20 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-600/30 transition-transform hover:scale-105 active:scale-95"
-                  >
-                    <Volume2 className="w-10 h-10" />
-                  </button>
-                  <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Play Audio Passage</p>
-                </div>
-              )}
-              <div className="space-y-3">
-              {currentExercise.options.map((opt, idx) => {
-                const isSelected = selectedOption === opt;
-                return (
-                  <button
-                    key={idx}
-                    disabled={isAnswerChecked}
-                    onClick={() => {
-                      playClick();
-                      setSelectedOption(opt);
-                    }}
-                    className={`w-full p-4 rounded-2xl text-left text-xs sm:text-sm font-bold border transition-all flex items-center justify-between ${
-                      isSelected
-                        ? 'bg-primary-600/25 border-primary-500 text-white shadow-lg shadow-primary-600/20'
-                        : 'bg-white shadow-sm border border-gray-200 border-gray-200 hover:border-gray-300 text-gray-800'
-                    }`}
-                  >
-                    <span>{opt}</span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        speakText(opt);
-                      }}
-                      className="p-1 rounded-lg hover:bg-white border border-gray-200 text-gray-500 hover:text-white"
-                      title="Hear audio"
-                    >
-                      <Volume2 className="w-4 h-4" />
-                    </button>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* 2. Sentence Builder Tokens */}
-        {currentExercise.type === 'sentence_builder' && (
-          <div className="space-y-6">
-            {/* Target arrangement line */}
-            <div className="min-h-[60px] p-3 rounded-2xl bg-white border border-gray-200 border-2 border-dashed border-gray-200 flex flex-wrap items-center gap-2">
-              {arrangedTokens.map((t, i) => (
-                <button
-                  key={i}
-                  disabled={isAnswerChecked}
-                  onClick={() => handleTokenClick(t, true)}
-                  className="px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-xs sm:text-sm shadow-md"
-                >
-                  {t}
-                </button>
-              ))}
+              <h2 className="text-xl font-bold text-gray-900 leading-relaxed tracking-tight">
+                {currentExercise.prompt_en}
+              </h2>
             </div>
 
-            {/* Available tokens pool */}
-            <div className="flex flex-wrap gap-2.5 justify-center">
-              {availableTokens.map((t, i) => (
-                <button
-                  key={i}
-                  disabled={isAnswerChecked}
-                  onClick={() => handleTokenClick(t, false)}
-                  className="px-4 py-2 rounded-xl bg-white shadow-sm border border-gray-200 border border-gray-300 hover:border-slate-400 text-gray-800 font-bold text-xs sm:text-sm shadow"
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 3. Voice Repetition */}
-        {currentExercise.type === 'voice_repetition' && (
-          <div className="space-y-4 text-center">
-            <div className="p-4 rounded-2xl bg-white shadow-sm border border-gray-200 flex items-center justify-center gap-3">
-              <button
-                onClick={() => speakText(currentExercise.correct_answer)}
-                className="p-2 rounded-xl bg-primary-600 text-white"
-              >
-                <Volume2 className="w-5 h-5" />
-              </button>
-              <span className="text-base font-extrabold text-white">
-                &quot;{currentExercise.correct_answer}&quot;
-              </span>
-            </div>
-
-            <AudioRecorder
-              targetSentence={currentExercise.correct_answer}
-              onComplete={(transcript) => {
-                setSpokenText(transcript);
-                handleCheckAnswer(transcript);
-              }}
-              maxSeconds={15}
-            />
-          </div>
-        )}
-
-        {/* 4. Open Writing */}
-        {currentExercise.type === 'open_writing' && (
-          <div className="space-y-4">
-            <textarea
-              disabled={isAnswerChecked}
-              value={writtenText}
-              onChange={(e) => setWrittenText(e.target.value)}
-              placeholder="Type your detailed response here..."
-              className="w-full h-32 p-4 bg-white border border-gray-200 rounded-2xl border border-gray-200 text-white placeholder-slate-500 focus:outline-none focus:border-primary-500 transition-colors resize-none text-sm shadow-inner"
-            />
-            <p className="text-xs text-gray-400 text-right font-mono">
-              {writtenText.length} / 25 min chars
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Answer Feedback Banner (Bottom Sheet) */}
-      <AnimatePresence>
-        {isAnswerChecked && (
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 30 }}
-            className={`p-6 rounded-3xl border shadow-2xl space-y-3 ${
-              isCorrect
-                ? 'bg-accent-emerald/15 border-accent-emerald/40 text-emerald-100'
-                : 'bg-accent-rose/15 border-accent-rose/40 text-rose-100'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                {isCorrect ? (
-                  <Check className="w-6 h-6 text-accent-emerald stroke-[3]" />
-                ) : (
-                  <AlertCircle className="w-6 h-6 text-accent-rose" />
-                )}
-                <span className="text-lg font-black">
-                  {isCorrect ? 'Correct!' : 'Incorrect'}
-                </span>
-              </div>
-              <span className="text-xs font-bold text-gray-700">
-                {isCorrect ? '+XP Earned' : `Correct: "${currentExercise.correct_answer}"`}
-              </span>
-            </div>
-
-            {/* Spanish L1 Linguistic Contrast Note */}
-            {currentExercise.contrastive_note_es && (
-              <div className="p-3.5 rounded-2xl bg-white border border-gray-200 border border-gray-200 text-xs text-gray-800 space-y-1">
-                <span className="font-bold text-accent-cyan flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Explicación de Lingüística de Contraste:</span>
-                </span>
-                <p className="leading-relaxed">{currentExercise.contrastive_note_es}</p>
+            {/* Reading / Listening Passage */}
+            {currentExercise.type === 'reading_comprehension' && currentExercise.passage_text && (
+              <div className="p-5 bg-gray-50 border border-gray-200 rounded-2xl max-h-56 overflow-y-auto">
+                <p className="text-sm text-gray-700 leading-relaxed font-normal">
+                  {currentExercise.passage_text}
+                </p>
               </div>
             )}
 
-            {/* Phonetic Deep Feedback for Voice Exercises */}
+            {currentExercise.type === 'listening_comprehension' && currentExercise.audio_script && (
+              <div className="flex flex-col items-center justify-center p-6 bg-gray-50 border border-gray-200 rounded-2xl gap-3">
+                <button
+                  onClick={() => speakText(currentExercise.audio_script!)}
+                  className="w-16 h-16 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shadow-md active:scale-95 transition-transform"
+                >
+                  <Volume2 className="w-8 h-8" />
+                </button>
+                <p className="text-xs text-gray-500 font-semibold">Toca para escuchar el audio</p>
+              </div>
+            )}
+
+            {/* Multiple Choice Options */}
+            {(currentExercise.type === 'multiple_choice' ||
+              currentExercise.type === 'reading_comprehension' ||
+              currentExercise.type === 'listening_comprehension' ||
+              currentExercise.type === 'chart_interpretation') &&
+              currentExercise.options && (
+                <div className="space-y-3">
+                  {currentExercise.options.map((opt, idx) => {
+                    const isSelected = selectedOption === opt;
+                    return (
+                      <button
+                        key={idx}
+                        disabled={isAnswerChecked}
+                        onClick={() => {
+                          playClick();
+                          setSelectedOption(opt);
+                        }}
+                        className={`w-full p-4 rounded-xl text-left text-sm font-semibold border transition-all flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-indigo-50 border-indigo-600 text-indigo-900 shadow-sm'
+                            : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-800'
+                        }`}
+                      >
+                        <span>{opt}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            speakText(opt);
+                          }}
+                          className="p-1 rounded-lg hover:bg-gray-200 text-gray-400 hover:text-gray-700"
+                          title="Escuchar pronunciación"
+                        >
+                          <Volume2 className="w-4 h-4" />
+                        </button>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+            {/* Sentence Builder */}
+            {currentExercise.type === 'sentence_builder' && (
+              <div className="space-y-6">
+                <div className="min-h-[64px] p-3 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-300 flex flex-wrap items-center gap-2">
+                  {arrangedTokens.map((t, i) => (
+                    <button
+                      key={i}
+                      disabled={isAnswerChecked}
+                      onClick={() => handleTokenClick(t, true)}
+                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-sm"
+                    >
+                      {t}
+                    </button>
+                  ))}
+                  {arrangedTokens.length === 0 && (
+                    <span className="text-xs text-gray-400 italic">Haz clic en las palabras de abajo</span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2.5 justify-center">
+                  {availableTokens.map((t, i) => (
+                    <button
+                      key={i}
+                      disabled={isAnswerChecked}
+                      onClick={() => handleTokenClick(t, false)}
+                      className="px-4 py-2 rounded-xl bg-white border border-gray-300 hover:border-gray-400 text-gray-800 font-semibold text-sm shadow-sm"
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Voice Repetition */}
             {currentExercise.type === 'voice_repetition' && (
-              <div className="pt-2">
-                <PhonemeFeedback
-                  accuracy={voiceEvalResult?.overall_accuracy ?? (isCorrect ? 92 : 45)}
-                  wpm={voiceEvalResult?.fluency_wpm ?? (isCorrect ? 130 : 60)}
-                  phonemes={voiceEvalResult?.phoneme_breakdown ?? [
-                    { phoneme: 'target', ipa: '/ˈtɑːrɡɪt/', score: isCorrect ? 0.95 : 0.4 },
-                    { phoneme: 'words', ipa: '/wɜːrdz/', score: isCorrect ? 0.88 : 0.3 }
-                  ]}
-                  alerts={voiceEvalResult?.l1_interference_alerts ?? (!isCorrect ? ['Se detectó un ritmo de sílaba español (staccato). Intenta usar ritmo acentual (stress-timed).'] : [])}
+              <div className="space-y-4 text-center">
+                <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-center gap-3">
+                  <button
+                    onClick={() => speakText(currentExercise.correct_answer)}
+                    className="p-2 rounded-xl bg-indigo-600 text-white shadow-sm"
+                  >
+                    <Volume2 className="w-5 h-5" />
+                  </button>
+                  <span className="text-base font-bold text-gray-900">
+                    &quot;{currentExercise.correct_answer}&quot;
+                  </span>
+                </div>
+
+                <AudioRecorder
+                  targetSentence={currentExercise.correct_answer}
+                  onComplete={(transcript) => {
+                    setSpokenText(transcript);
+                    handleCheckAnswer(transcript);
+                  }}
+                  maxSeconds={15}
                 />
               </div>
             )}
 
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={handleNext}
-                className={`flex items-center gap-2 px-8 py-3.5 rounded-2xl font-extrabold text-sm text-white shadow-lg active:scale-95 transition-all ${
+            {/* Open Writing */}
+            {currentExercise.type === 'open_writing' && (
+              <div className="space-y-3">
+                <textarea
+                  disabled={isAnswerChecked}
+                  value={writtenText}
+                  onChange={(e) => setWrittenText(e.target.value)}
+                  placeholder="Escribe tu respuesta en inglés..."
+                  className="w-full h-32 p-4 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-indigo-600 transition-colors resize-none text-sm shadow-sm"
+                />
+                <p className="text-xs text-gray-400 text-right font-mono">
+                  {writtenText.length} caracteres
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Feedback Bottom Banner */}
+          <AnimatePresence>
+            {isAnswerChecked && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                className={`p-6 rounded-2xl border shadow-md space-y-3 ${
                   isCorrect
-                    ? 'bg-accent-emerald hover:bg-emerald-400 shadow-accent-emerald/30'
-                    : 'bg-accent-rose hover:bg-rose-400 shadow-accent-rose/30'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                    : 'bg-rose-50 border-rose-200 text-rose-900'
                 }`}
               >
-                <span>Continue</span>
-                <ArrowRight className="w-4 h-4" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    {isCorrect ? (
+                      <Check className="w-6 h-6 text-emerald-600 stroke-[3]" />
+                    ) : (
+                      <AlertCircle className="w-6 h-6 text-rose-600" />
+                    )}
+                    <span className="text-base font-bold">
+                      {isCorrect ? '¡Excelente! Respuesta Correcta' : 'Respuesta Incorrecta'}
+                    </span>
+                  </div>
+                  <span className="text-xs font-semibold text-gray-600">
+                    {isCorrect ? '+20 XP' : `Correcta: "${currentExercise.correct_answer}"`}
+                  </span>
+                </div>
+
+                {currentExercise.contrastive_note_es && (
+                  <div className="p-3.5 rounded-xl bg-white border border-gray-200 text-xs text-gray-700 space-y-1">
+                    <span className="font-semibold text-indigo-600 flex items-center gap-1">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Explicación Lingüística:</span>
+                    </span>
+                    <p className="leading-relaxed">{currentExercise.contrastive_note_es}</p>
+                  </div>
+                )}
+
+                {currentExercise.type === 'voice_repetition' && (
+                  <div className="pt-2">
+                    <PhonemeFeedback
+                      accuracy={voiceEvalResult?.overall_accuracy ?? (isCorrect ? 92 : 45)}
+                      wpm={voiceEvalResult?.fluency_wpm ?? (isCorrect ? 130 : 60)}
+                      phonemes={
+                        voiceEvalResult?.phoneme_breakdown ?? [
+                          { phoneme: 'target', ipa: '/ˈtɑːrɡɪt/', score: isCorrect ? 0.95 : 0.4 },
+                          { phoneme: 'words', ipa: '/wɜːrdz/', score: isCorrect ? 0.88 : 0.3 },
+                        ]
+                      }
+                      alerts={
+                        voiceEvalResult?.l1_interference_alerts ??
+                        (!isCorrect
+                          ? ['Se detectó ritmo silábico español. Intenta usar ritmo acentual en inglés.']
+                          : [])
+                      }
+                    />
+                  </div>
+                )}
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    onClick={handleNext}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm text-white shadow-sm active:scale-95 transition-all ${
+                      isCorrect
+                        ? 'bg-emerald-600 hover:bg-emerald-700'
+                        : 'bg-rose-600 hover:bg-rose-700'
+                    }`}
+                  >
+                    <span>Continuar</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Check Answer Button */}
+          {!isAnswerChecked && currentExercise.type !== 'voice_repetition' && (
+            <div className="flex justify-end">
+              <button
+                onClick={() => handleCheckAnswer()}
+                disabled={
+                  isAnswerChecked ||
+                  (currentExercise.type === 'multiple_choice' && !selectedOption) ||
+                  (currentExercise.type === 'sentence_builder' && arrangedTokens.length === 0) ||
+                  (currentExercise.type === 'open_writing' && writtenText.trim().length === 0) ||
+                  (currentExercise.type !== 'multiple_choice' &&
+                    currentExercise.type !== 'sentence_builder' &&
+                    currentExercise.type !== 'open_writing' &&
+                    !selectedOption &&
+                    arrangedTokens.length === 0)
+                }
+                className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-sm active:scale-95 disabled:opacity-40 transition-all"
+              >
+                Comprobar Respuesta
               </button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Check Answer Button (Before Checking) */}
-      {!isAnswerChecked && currentExercise.type !== 'voice_repetition' && (
-        <div className="flex justify-end">
-          <button
-            onClick={() => handleCheckAnswer()}
-            disabled={
-              isAnswerChecked || 
-              (currentExercise.type === 'multiple_choice' && !selectedOption) ||
-              (currentExercise.type === 'sentence_builder' && arrangedTokens.length === 0) ||
-              (currentExercise.type === 'open_writing' && writtenText.trim().length === 0) ||
-              (currentExercise.type !== 'multiple_choice' && currentExercise.type !== 'sentence_builder' && currentExercise.type !== 'open_writing' && !selectedOption && arrangedTokens.length === 0)
-            }
-            className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-500 text-white font-extrabold text-sm shadow-lg shadow-primary-600/30 active:scale-95 disabled:opacity-40 transition-all"
-          >
-            Check Answer
-          </button>
-        </div>
-      )}
-      
-      </>
+          )}
+        </>
       )}
     </div>
   );

@@ -36,8 +36,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API v1 routes
+# Include API routes both under /api/v1 and at root for seamless compatibility
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(api_router)
 
 @app.get("/health", tags=["Health"])
 async def health_check():
